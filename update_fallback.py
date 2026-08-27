@@ -29,6 +29,7 @@ headers = {
 # ==========================================
 policy_id = ENV_PROFILE_ID.strip() if ENV_PROFILE_ID else None
 if not policy_id or policy_id.lower() == "default":
+    # 探测策略列表（这里的 endpoint 是请求列表，允许用 policies）
     for endpoint in ["devices/policies", "devices/policy"]:
         url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/{endpoint}"
         try:
@@ -36,6 +37,7 @@ if not policy_id or policy_id.lower() == "default":
             if res.status_code == 200:
                 result = res.json().get("result", [])
                 if isinstance(result, list) and len(result) > 0:
+                    # 优先寻找明确标记为 default 的策略
                     for p in result:
                         if p.get("default") is True:
                             policy_id = p.get("policy_id") or p.get("id")
@@ -49,9 +51,9 @@ if not policy_id or policy_id.lower() == "default":
         except Exception:
             continue
 
-# 【重点修复修复区域】根据是否携带 ID 智能切换单复数路由
+# 【核心修复】：无论是否带有 ID，Cloudflare 官方 API 统一要求使用单数 policy！
 if policy_id and policy_id.lower() != "default":
-    api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policies/{policy_id}/fallback_domains"
+    api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/{policy_id}/fallback_domains"
 else:
     api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/fallback_domains"
 
@@ -202,4 +204,4 @@ if cf_resp.status_code not in (200, 201):
     print(f"❌ 最终推送失败，API 完整报错详情:\n{err_info}")
     sys.exit(1)
 
-print("✅ 大满贯达成！规则闭环天衣无缝，私有数据毫发无伤，DNS 参数全面接管！")
+print("✅ 大满贯达成！规则闭环天衣无缝，API 畅通，DNS 参数全面接管！")
