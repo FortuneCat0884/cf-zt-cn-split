@@ -36,7 +36,6 @@ if not policy_id or policy_id.lower() == "default":
             if res.status_code == 200:
                 result = res.json().get("result", [])
                 if isinstance(result, list) and len(result) > 0:
-                    # 优先寻找明确标记为 default 的策略
                     for p in result:
                         if p.get("default") is True:
                             policy_id = p.get("policy_id") or p.get("id")
@@ -50,7 +49,11 @@ if not policy_id or policy_id.lower() == "default":
         except Exception:
             continue
 
-api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/{policy_id}/fallback_domains" if policy_id and policy_id.lower() != "default" else f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/fallback_domains"
+# 【重点修复修复区域】根据是否携带 ID 智能切换单复数路由
+if policy_id and policy_id.lower() != "default":
+    api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policies/{policy_id}/fallback_domains"
+else:
+    api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/fallback_domains"
 
 # ==========================================
 # 2. 状态感知与数据隔离 (最高等级防御)
@@ -63,7 +66,7 @@ DEFAULT_SUFFIXES = [
 user_manual_domains = []
 user_manual_suffixes = set()
 
-print("🛡️ 正在感知云端现有配置，建立私有数据保护隔离舱...")
+print(f"🛡️ 正在感知云端现有配置 (Target: {policy_id or 'Global Default'})，建立私有数据保护隔离舱...")
 try:
     get_resp = requests.get(api_url, headers=headers, timeout=15)
     get_resp.raise_for_status()
@@ -71,11 +74,11 @@ try:
         s = item.get("suffix", "").lower().strip()
         desc = item.get("description", "")
         
-        # 只要不是脚本自动生成的，全部视为用户的神圣不可侵犯财产（包括用户自己修改的内网域）
+        # 只要不是脚本自动生成的，全部视为用户的神圣不可侵犯财产
         if s and desc != AUTO_TAG:
             user_manual_domains.append({
                 "suffix": s,
-                "dns_server": item.get("dns_server") or [],  # 防御 null 反噬
+                "dns_server": item.get("dns_server") or [],  
                 "description": desc
             })
             user_manual_suffixes.add(s)
@@ -83,7 +86,6 @@ except Exception as e:
     print(f"❌ 致命错误: 无法获取云端当前配置！为防止误覆盖私有数据，同步强行阻断中止！\n详情: {e}")
     sys.exit(1)
 
-# 生成基底 Payload（合并用户私有财产 + 补齐缺失的官方内网默认域）
 baseline_payload = list(user_manual_domains)
 for suffix in DEFAULT_SUFFIXES:
     if suffix not in user_manual_suffixes:
@@ -92,7 +94,7 @@ for suffix in DEFAULT_SUFFIXES:
             "dns_server": [],
             "description": "Default Local Domain"
         })
-        user_manual_suffixes.add(suffix)  # 将官方内网域也加入指纹库，防止后续公网域冲突
+        user_manual_suffixes.add(suffix)  
 
 dynamic_quota = MAX_TOTAL_RULES - len(baseline_payload)
 print(f"📊 隔离舱建立完毕: 保护了 {len(user_manual_domains)} 条您的私有/修改规则。云端剩余可用自动配额: {dynamic_quota} 条")
@@ -101,11 +103,8 @@ print(f"📊 隔离舱建立完毕: 保护了 {len(user_manual_domains)} 条您�
 # 3. 全局拓扑联合查重函数
 # ==========================================
 def is_redundant(target: str, auto_domains: list) -> bool:
-    """检查目标域名是否已经被基底规则或已生成的自动规则覆盖"""
     if target.endswith(".cn") and target != "cn":
-        return True  # 被统配 cn 覆盖
-    
-    # 双重查重：先查用户私有财产池，再查自动生成池
+        return True  
     for parent in list(user_manual_suffixes) + auto_domains:
         if parent == "cn": 
             continue
@@ -133,7 +132,6 @@ INITIAL_CORE = [
     "cmbchina.com", "ccb.com", "abchina.com", "unionpay.com", "so.com"
 ]
 
-# 按点号层级排序，修复乱序填写的“父子倒置”Bug
 INITIAL_CORE = sorted(list(set(INITIAL_CORE)), key=lambda x: (x.count('.'), len(x)))
 auto_generated_domains = []
 
@@ -159,11 +157,10 @@ try:
             continue
         
         domain = line.split(":", 1)[1] if line.startswith(("domain:", "full:")) else line
-        domain = domain.lstrip('*.').rstrip('.')  # 剥离 V2Ray 泛域名特征
+        domain = domain.lstrip('*.').rstrip('.')  
         
-        # 究极合规校验
         if (domain and len(domain) > 3 and not domain.endswith(".cn") 
-            and not re.match(r'^(\d{1,3}\.){3}\d{1,3}$', domain)  # 严格拒绝纯 IP 伪装
+            and not re.match(r'^(\d{1,3}\.){3}\d{1,3}$', domain)  
             and re.match(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$', domain)):
             public_candidates.append(domain)
 except Exception as e:
