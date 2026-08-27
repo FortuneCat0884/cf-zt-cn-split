@@ -1,4 +1,4 @@
-name: 每日同步 CN Split Tunnels 到 Cloudflare Zero Trust
+name: 同步到Zero Trust
 permissions:
   contents: read
 
@@ -21,10 +21,16 @@ jobs:
       - name: 安装依赖
         run: pip install requests
 
-      - name: 运行同步脚本
+      - name: 1. 运行 IP 分流同步脚本 (Split Tunnels)
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_PROFILE_ID: ${{ secrets.CF_PROFILE_ID }}
           MODE: exclude                     # 可改成 include
         run: python cf-zt-cn-split.py
+
+      - name: 2. 运行域名 DNS 分流同步脚本 (Local Domain Fallback)
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: python update_fallback.py
