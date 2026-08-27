@@ -1,93 +1,147 @@
 import os
 import requests
 
-# 从环境变量中读取 Cloudflare 凭证
 ACCOUNT_ID = os.environ.get("CF_ACCOUNT_ID")
 TOKEN = os.environ.get("CF_API_TOKEN")
+PROFILE_ID = os.environ.get("CF_PROFILE_ID")
 
 if not ACCOUNT_ID or not TOKEN:
-    raise ValueError("❌ 缺少环境变量 CF_ACCOUNT_ID 或 CF_API_TOKEN")
+    raise ValueError("缺少环境变量 CF_ACCOUNT_ID 或 CF_API_TOKEN")
 
-# 国内双公共 DNS（阿里公共 DNS + 腾讯 DNSPod）
+# 国内高速双公共 DNS
 DNS_SERVERS = ["223.5.5.5", "119.29.29.29"]
 
-# 官方完整的 14 个默认内网保留域名（不指定 DNS 服务器，保持走本地网关）
+# 1. 官方 14 个系统保留默认内网域（保持内网/局域网/NAS 正常访问）
 DEFAULT_FALLBACKS = [
-    {"suffix": "corp"},
-    {"suffix": "domain"},
-    {"suffix": "home"},
-    {"suffix": "home.arpa"},
-    {"suffix": "host"},
-    {"suffix": "internal"},
-    {"suffix": "intranet"},
-    {"suffix": "invalid"},
-    {"suffix": "lan"},
-    {"suffix": "local"},
-    {"suffix": "localdomain"},
-    {"suffix": "localhost"},
-    {"suffix": "private"},
-    {"suffix": "test"},
+    {"suffix": "corp", "dns_servers": []},
+    {"suffix": "domain", "dns_servers": []},
+    {"suffix": "home", "dns_servers": []},
+    {"suffix": "home.arpa", "dns_servers": []},
+    {"suffix": "host", "dns_servers": []},
+    {"suffix": "internal", "dns_servers": []},
+    {"suffix": "intranet", "dns_servers": []},
+    {"suffix": "invalid", "dns_servers": []},
+    {"suffix": "lan", "dns_servers": []},
+    {"suffix": "local", "dns_servers": []},
+    {"suffix": "localdomain", "dns_servers": []},
+    {"suffix": "localhost", "dns_servers": []},
+    {"suffix": "private", "dns_servers": []},
+    {"suffix": "test", "dns_servers": []},
 ]
 
-print("🔄 正在从开源社区拉取国内热门直连域名列表...")
-url = "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt"
-resp = requests.get(url, timeout=15)
-resp.raise_for_status()
-raw_lines = resp.text.splitlines()
+# 2. 精选国内最全核心服务、音视频 CDN、银行、政企主域名
+CORE_DOMAINS = [
+    # 顶级后缀（一条即可覆盖所有 .cn / .com.cn / .gov.cn / .edu.cn）
+    "cn",
 
-cn_domains = []
-for line in raw_lines:
-    line = line.strip()
-    # 过滤空行与注释
-    if not line or line.startswith("#"):
-        continue
-    # 提取纯域名
-    if line.startswith("full:") or line.startswith("domain:"):
-        domain = line.split(":", 1)[1]
-    elif ":" in line:
-        continue
-    else:
-        domain = line
+    # 央视 / 新闻 / 广播电视
+    "cctv.com", "cctvpic.com", "cntv.com", "cgtn.com", "yangshipin.com",
+    "xinhuanet.com", "people.com.cn", "cankaoxiaoxi.com", "thepaper.cn",
 
-    if domain and domain not in cn_domains:
-        cn_domains.append(domain)
+    # 腾讯系（微信、QQ、腾讯视频、腾讯云、游戏 CDN）
+    "qq.com", "tencent.com", "gtimg.com", "qpic.cn", "qlogo.cn",
+    "tencent-cloud.net", "myqcloud.com", "wechat.com", "tenpay.com",
 
-# 确保核心根后缀 cn 在首位（自动匹配所有 .cn 结尾网站）
-if "cn" not in cn_domains:
-    cn_domains.insert(0, "cn")
+    # 阿里系（淘宝、天猫、支付宝、阿里云、优酷、高德）
+    "taobao.com", "tmall.com", "alipay.com", "alipayobjects.com",
+    "aliyun.com", "aliyuncs.com", "alicdn.com", "ykimg.com",
+    "youku.com", "amap.com", "autonavi.com", "dingtalk.com",
 
-# 截取前 400 个最高频的主流国内域名，避免超出 Cloudflare 规则容量限制
-MAX_LIMIT = 400
-selected_domains = cn_domains[:MAX_LIMIT]
-print(f"📦 成功筛选出 {len(selected_domains)} 个高频国内域名...")
+    # 百度系（搜索、网盘、贴吧、地图）
+    "baidu.com", "bdimg.com", "bdstatic.com", "baidupcs.com",
 
-# 组装完整的推送数据
+    # 字节跳动系（抖音、今日头条、西瓜视频、飞书）
+    "douyin.com", "bytegoofy.com", "bytedance.com", "toutiao.com",
+    "feishu.cn", "feishucdn.com", "pstatp.com", "ixigua.com",
+
+    # 哔哩哔哩（B站及全套播放与图片 CDN）
+    "bilibili.com", "biliapi.net", "hdslb.com", "bilivideo.com",
+
+    # 爱奇艺专项（含视频流分发与边缘 CDN）
+    "iqiyi.com", "qiyi.com", "qy.net", "qiyipic.com", "71edge.com",
+
+    # 芒果 TV / 快手 / 斗鱼 / 虎牙 / 喜马拉雅
+    "mgtv.com", "hunantv.com", "kuaishou.com", "yximgs.com",
+    "douyu.com", "douyucdn.cn", "huya.com", "ximalaya.com",
+
+    # 网易系（邮箱、网易云音乐、游戏）
+    "163.com", "126.net", "netease.com", "127.net", "music.163.com",
+
+    # 电商 / 生活 / 出行（京东、美团、拼多多、小红书、携程、滴滴、12306）
+    "jd.com", "360buyimg.com", "pinduoduo.com", "yangkeduo.com",
+    "meituan.com", "dianping.com", "meituan.net", "xiaohongshu.com",
+    "ctrip.com", "trip.com", "didiglobal.com", "udache.com", "12306.cn",
+
+    # 社区 / 资讯 / 技术（知乎、微博、CSDN、掘金、Gitee、博客园）
+    "zhihu.com", "zhimg.com", "weibo.com", "weibo.cn", "sinaimg.cn",
+    "csdn.net", "gitee.com", "juejin.cn", "cnblogs.com", "segmentfault.com",
+
+    # 手机终端 / 硬件生态（华为、小米、OPPO、vivo、荣耀、大疆）
+    "huawei.com", "dbankcdn.com", "vmall.com", "mi.com", "xiaomi.com",
+    "mi-img.com", "oppo.com", "vivo.com", "honor.com", "dji.com",
+
+    # 金融 / 银行（招行、工行、建行、农行、中行、银联）
+    "cmbchina.com", "icbc.com.cn", "ccb.com", "abchina.com",
+    "boc.cn", "unionpay.com",
+
+    # 工具 / 办公 / 安全（WPS 金山、夸克、360）
+    "wps.cn", "wpscdn.cn", "kdocs.cn", "quark.cn", "360.cn", "so.com"
+]
+
+print("🔄 正在拉取扩展国内直连域名...")
+try:
+    url = "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt"
+    resp = requests.get(url, timeout=15)
+    resp.raise_for_status()
+    raw_lines = resp.text.splitlines()
+
+    for line in raw_lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("full:") or line.startswith("domain:"):
+            domain = line.split(":", 1)[1]
+        elif ":" in line:
+            continue
+        else:
+            domain = line
+
+        # 过滤无效纯数字、杂乱单字域名
+        if domain and len(domain) > 3 and not domain.startswith("0") and not domain.startswith("1"):
+            if domain not in CORE_DOMAINS:
+                CORE_DOMAINS.append(domain)
+except Exception as e:
+    print(f"⚠️ 拉取公网扩展列表异常，使用核心内置列表: {e}")
+
+# 严格截取前 360 条（加上 14 条保留内网域，总数约 374 条，完美处于安全限制内）
+selected_domains = CORE_DOMAINS[:360]
+print(f"📦 筛选出 {len(selected_domains)} 个核心高频国内域名...")
+
 payload = []
-
-# 1. 注入默认 14 个内网域名（不带 dns_servers）
 payload.extend(DEFAULT_FALLBACKS)
 
-# 2. 注入国内分流域名（同时绑定 223.5.5.5 和 119.29.29.29）
 for d in selected_domains:
     payload.append({
         "suffix": d,
-        "dns_servers": DNS_SERVERS
+        "dns_servers": DNS_SERVERS,
+        "description": "China Split DNS"
     })
 
-print(f"🚀 正在向 Cloudflare API 推送共 {len(payload)} 条 Fallback 规则...")
+if PROFILE_ID:
+    api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/{PROFILE_ID}/fallback_domains"
+else:
+    api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/fallback_domains"
 
-# 调用 Cloudflare Zero Trust Local Domain Fallback 接口
-api_url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/fallback_domains"
 headers = {
     "Authorization": f"Bearer {TOKEN}",
     "Content-Type": "application/json"
 }
 
+print(f"🚀 正在推送到 API: {api_url}")
 cf_resp = requests.put(api_url, json=payload, headers=headers)
 
 if cf_resp.status_code != 200:
-    print(f"❌ 推送失败，返回状态码: {cf_resp.status_code}")
-    print(f"错误详情: {cf_resp.text}")
+    print(f"❌ 推送失败: {cf_resp.text}")
     cf_resp.raise_for_status()
 
-print("✅ 同步成功！国内域名已全量绑定 223.5.5.5 / 119.29.29.29，且 14 个内网保留域已完整保留。")
+print("✅ 同步完成！国内全业务域名与阿里/腾讯 DNS 已成功全量写入。")
