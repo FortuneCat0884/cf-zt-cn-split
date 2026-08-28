@@ -31,15 +31,27 @@ VALID_DOMAIN_RE = re.compile(r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)
 # ============================================================
 
 AI_EXCLUDE_DOMAINS = [
+    # Google AI / Gemini (已补充完整核心网关、遥测及前端静态域名)
     "gemini.google.com",
-    "generativelanguage.googleapis.com",
     "aistudio.google.com",
+    "gemini.gstatic.com",
+    "ai.google.dev",
+    "generativelanguage.googleapis.com",
+    "alkalicore-pa.googleapis.com",
+    "proactivebackend-pa.googleapis.com",
+    "clients6.google.com",
+    
+    # OpenAI / ChatGPT
     "chatgpt.com",
     "openai.com",
     "oaistatic.com",
     "oaiusercontent.com",
+    
+    # Anthropic / Claude
     "claude.ai",
     "anthropic.com",
+    
+    # Adobe
     "firefly.adobe.com",
 ]
 
