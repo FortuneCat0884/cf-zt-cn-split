@@ -34,12 +34,14 @@ AI_EXCLUDE_DOMAINS = [
     # Google AI / Gemini (已补充完整核心网关、遥测及前端静态域名)
     "gemini.google.com",
     "aistudio.google.com",
-    "gemini.gstatic.com",
+    "gstatic.com",
     "ai.google.dev",
     "googleapis.com",
     "clients6.google.com",
     "accounts.google.com",
     "googleusercontent.com",
+    "ogs.google.com",
+    apis.google.com,
     
     # OpenAI / ChatGPT
     "chatgpt.com",
