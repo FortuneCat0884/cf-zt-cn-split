@@ -41,7 +41,7 @@ AI_EXCLUDE_DOMAINS = [
     "accounts.google.com",
     "googleusercontent.com",
     "ogs.google.com",
-    apis.google.com,
+    "apis.google.com",
     
     # OpenAI / ChatGPT
     "chatgpt.com",
