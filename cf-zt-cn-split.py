@@ -40,6 +40,8 @@ AI_EXCLUDE_DOMAINS = [
     "alkalicore-pa.googleapis.com",
     "proactivebackend-pa.googleapis.com",
     "clients6.google.com",
+    "accounts.google.com",
+    "googleusercontent.com",
     
     # OpenAI / ChatGPT
     "chatgpt.com",
