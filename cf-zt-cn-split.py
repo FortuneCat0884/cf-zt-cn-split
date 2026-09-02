@@ -31,6 +31,12 @@ VALID_DOMAIN_RE = re.compile(r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)
 # ============================================================
 
 AI_EXCLUDE_DOMAINS = [
+    # 本地
+    "127.0.0.0/8",
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    
     # Google AI / Gemini (已补充完整核心网关、遥测及前端静态域名)
     "gemini.google.com",
     "aistudio.google.com",
