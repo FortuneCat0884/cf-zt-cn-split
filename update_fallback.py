@@ -125,20 +125,47 @@ def is_redundant(target: str, auto_domains: list) -> bool:
     return False
 
 # ==========================================
-# 4. 骨干大厂库
+# 4. 骨干大厂库 (优先享有前排配额，绝不漏掉核心服务)
 # ==========================================
 INITIAL_CORE = [
+    # 顶级域与国家级媒体
     "cn", "cctv.com", "cctvpic.com", "cntv.com", "cgtn.com", "yangshipin.com",
-    "qq.com", "tencent.com", "gtimg.com", "tencent-cloud.net", "myqcloud.com", "wechat.com",
-    "taobao.com", "tmall.com", "alipay.com", "aliyun.com", "aliyuncs.com", "alicdn.com", "ykimg.com", "youku.com", "amap.com", "dingtalk.com", "ele.me",
+    
+    # 腾讯与微信全家桶 (补齐微信小程序与微信支付核心)
+    "qq.com", "tencent.com", "gtimg.com", "tencent-cloud.net", "myqcloud.com", 
+    "wechat.com", "servicewechat.com", "tenpay.com",
+    
+    # 阿里生态
+    "taobao.com", "tmall.com", "alipay.com", "aliyun.com", "aliyuncs.com", "alicdn.com", 
+    "ykimg.com", "youku.com", "amap.com", "dingtalk.com", "ele.me",
+    
+    # 百度
     "baidu.com", "bdimg.com", "bdstatic.com", "baidupcs.com", "baidubce.com",
-    "douyin.com", "bytegoofy.com", "bytedance.com", "toutiao.com", "ixigua.com", "volccdn.com",
+    
+    # 字节 / 抖音生态 (补齐抖音视频与高清图片 CDN)
+    "douyin.com", "douyincdn.com", "byteimg.com", "bytegoofy.com", "bytedance.com", 
+    "toutiao.com", "ixigua.com", "volccdn.com",
+    
+    # Bilibili 核心
     "bilibili.com", "biliapi.net", "hdslb.com", "bilivideo.com",
+    
+    # 爱奇艺 / 快手 / 芒果
     "iqiyi.com", "qiyi.com", "qy.net", "qiyipic.com", "71edge.com",
-    "mgtv.com", "kuaishou.com", "yximgs.com", "douyu.com", "huya.com", "ximalaya.com",
+    "mgtv.com", "kuaishou.com", "kwimgs.com", "yximgs.com", "douyu.com", "huya.com", "ximalaya.com",
+    
+    # 网易
     "163.com", "126.net", "netease.com", "127.net",
-    "jd.com", "360buyimg.com", "pinduoduo.com", "meituan.com", "sankuai.com", "xiaohongshu.com",
-    "ctrip.com", "didiglobal.com", "sf-express.com", "zhihu.com", "weibo.com", "csdn.net", "gitee.com",
+    
+    # 电商 / 外卖 / 生活 (补齐拼多多移动端核心与小红书图片)
+    "jd.com", "360buyimg.com", "pinduoduo.com", "yangkeduo.com", 
+    "meituan.com", "sankuai.com", "xiaohongshu.com", "xhscdn.com",
+    
+    # 出行 / 资讯 / 社区 (补齐知乎图片与微博图片)
+    "ctrip.com", "didiglobal.com", "sf-express.com", 
+    "zhihu.com", "zhimg.com", "weibo.com", "weibocdn.com", 
+    "csdn.net", "gitee.com", "segmentfault.com", "oschina.net",
+    
+    # 云存储与厂商
     "qiniu.com", "upyun.com", "ksyun.com",
     "huawei.com", "dbankcdn.com", "vmall.com", "mi.com", "xiaomi.com", "oppo.com", "vivo.com", "dji.com",
     "cmbchina.com", "ccb.com", "abchina.com", "unionpay.com", "so.com"
@@ -153,7 +180,7 @@ for d in INITIAL_CORE:
     if not is_redundant(d, auto_generated_domains):
         auto_generated_domains.append(d)
 
-print(f"⭐ 已分发大厂根域: {len(auto_generated_domains)} 条")
+print(f"⭐ 已分发大厂核心根域: {len(auto_generated_domains)} 条")
 
 # ==========================================
 # 5. 公网扩展库
