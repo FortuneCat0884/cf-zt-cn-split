@@ -67,6 +67,7 @@ AI_EXCLUDE_DOMAINS = [
 # 3. 国内核心大厂域名 (精准排除，绝不绕道海外)
 # ============================================================
 CN_CORE_DOMAINS = [
+    *.cn,
     # Bilibili (特别包含视频核心 CDN bilivideo.com)
     "*.bilibili.com", "*.bilivideo.com", "*.hdslb.com", "*.biliapi.net",
     # 百度
@@ -85,7 +86,7 @@ CN_CORE_DOMAINS = [
     # 知乎 / 网易 / 新浪微博
     "*.zhihu.com", "*.zhimg.com", "*.163.com", "*.126.net", "*.sina.com", "*.weibo.com", "*.weibocdn.com",
     # 美团 / 高德地图 / 央视
-    "*.meituan.com", "*.dianping.com", "*.amap.com", "*.cctv.com", "*.cctvpic.com",
+    "*.meituan.com", "*.dianping.com", "*.amap.com", "*.cctv.com", "*.cctvpic.com", "*.cntv.cn", "*.wscdns.com", "*.kcdnvip.com", "*.volcfcdn.com",
     # 影音视频 / 豆瓣
     "*.iqiyi.com", "*.qiyi.com", "*.youku.com", "*.sohu.com", "*.douban.com", "*.doubanio.com",
     # 手机大厂 / 开发者站
