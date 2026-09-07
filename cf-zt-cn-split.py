@@ -38,29 +38,29 @@ LOCAL_EXCLUDE_IPS = [
 # ============================================================
 AI_EXCLUDE_DOMAINS = [
     # Google AI / Gemini
-    "gemini.google.com",
-    "aistudio.google.com",
-    "gstatic.com",
-    "ai.google.dev",
-    "googleapis.com",
-    "clients6.google.com",
-    "accounts.google.com",
-    "googleusercontent.com",
-    "ogs.google.com",
-    "apis.google.com",
+    # "gemini.google.com",
+    # "aistudio.google.com",
+    # "gstatic.com",
+    # "ai.google.dev",
+    # "googleapis.com",
+    # "clients6.google.com",
+    # "accounts.google.com",
+    # "googleusercontent.com",
+    # "ogs.google.com",
+    # "apis.google.com",
     
     # OpenAI / ChatGPT
-    "chatgpt.com",
-    "openai.com",
-    "oaistatic.com",
-    "oaiusercontent.com",
+    # "chatgpt.com",
+    # "openai.com",
+    # "oaistatic.com",
+    # "oaiusercontent.com",
     
     # Anthropic / Claude
-    "claude.ai",
-    "anthropic.com",
+    # "claude.ai",
+    # "anthropic.com",
     
     # Adobe
-    "firefly.adobe.com",
+    # "firefly.adobe.com",
 ]
 
 # ============================================================
