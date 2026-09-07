@@ -70,7 +70,7 @@ CN_CORE_DOMAINS = [
     # Bilibili (特别包含视频核心 CDN bilivideo.com)
     "*.bilibili.com", "*.bilivideo.com", "*.hdslb.com", "*.biliapi.net",
     # 百度
-    "*.baidu.com", "*.bdimg.com", "*.bdstatic.com", "*.baidupcs.com",
+    "*.baidu.com", "*.bdimg.com", "*.bdstatic.com", "*.baidupcs.com", "*.shifen.com", "*.bcebos.com",
     # 腾讯 / 微信全家桶 (含小程序与微信支付)
     "*.wechat.com", "*.weixin.qq.com", "*.wx.qq.com", "*.servicewechat.com", "*.tenpay.com",
     "*.qq.com", "*.tencent.com", "*.gtimg.com", "*.myqcloud.com",
