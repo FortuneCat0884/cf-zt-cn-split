@@ -67,7 +67,7 @@ AI_EXCLUDE_DOMAINS = [
 # 3. 国内核心大厂域名 (精准排除，绝不绕道海外)
 # ============================================================
 CN_CORE_DOMAINS = [
-    *.cn,
+    "*.cn",
     # Bilibili (特别包含视频核心 CDN bilivideo.com)
     "*.bilibili.com", "*.bilivideo.com", "*.hdslb.com", "*.biliapi.net",
     # 百度
