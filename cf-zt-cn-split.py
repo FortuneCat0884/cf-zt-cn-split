@@ -31,6 +31,29 @@ LOCAL_EXCLUDE_IPS = [
     "10.0.0.0/8",
     "172.16.0.0/12",
     "192.168.0.0/16",
+    "104.18.10.0/24",
+    "104.18.20.0/24",
+    "104.19.30.0/24",
+    "104.20.40.0/24",
+    "104.21.50.0/24",
+    "104.22.60.0/24",
+    "104.24.70.0/24",
+    "104.26.80.0/24",
+    "104.27.90.0/24",
+    "172.67.180.0/24",
+    "172.67.190.0/24",
+    "172.64.100.0/24",
+    "162.159.192.0/24",
+    "162.159.138.0/24",
+    "198.41.132.0/24",
+    "198.41.214.0/24",
+    "141.101.120.0/24",
+    "108.162.236.0/24",
+    "104.16.1.0/24",
+    "104.16.80.0/24",
+    "104.16.160.0/24",
+    "104.17.64.0/24",
+    "104.17.128.0/24",
 ]
 
 # ============================================================
@@ -96,6 +119,31 @@ CN_CORE_DOMAINS = [
 # IP 数据源：GeoIP2-CN (聚合版)
 IP_URL = "https://raw.githubusercontent.com/soffchen/GeoIP2-CN/release/CN-ip-cidr.txt"
 
+def get_extra_excludes():
+    """私有 IP 仅从 Secret 对应的环境变量读取；校验错误不回显原值。"""
+    raw = os.getenv("WARP_EXTRA_EXCLUDES", "").strip()
+    if not raw:
+        return []
+    if MODE != "exclude":
+        raise ValueError("WARP_EXTRA_EXCLUDES 仅支持 MODE=exclude；切换 include 前请清空该 Secret。")
+
+    cidrs = []
+    seen = set()
+    for index, value in enumerate(re.split(r"[\s,]+", raw), start=1):
+        if not value:
+            continue
+        try:
+            # 单个 IPv4/IPv6 自动补 /32 或 /128；网段必须填写准确的网络地址。
+            cidr = str(ipaddress.ip_network(value, strict=True))
+        except ValueError:
+            raise ValueError(
+                f"WARP_EXTRA_EXCLUDES 第 {index} 项无效；请填写 IP 或合法 CIDR，原值已隐藏。"
+            ) from None
+        if cidr not in seen:
+            seen.add(cidr)
+            cidrs.append(cidr)
+    return cidrs
+
 def get_cn_cidrs(max_available_ips):
     """拉取 CN CIDR 并根据剩余可用配额进行最优聚合"""
     r = requests.get(IP_URL, timeout=30)
@@ -114,8 +162,16 @@ def get_cn_cidrs(max_available_ips):
     return cidrs
 
 def update_split_tunnels():
+    extra_cidrs = get_extra_excludes()
+
     # 1. 本地 IP
     local_entries = [{"address": ip, "description": "Local LAN"} for ip in LOCAL_EXCLUDE_IPS]
+
+    # 私有排除项每次都参与同步，不写入仓库，也不输出到日志。
+    extra_entries = [
+        {"address": cidr, "description": "Private exclusion"}
+        for cidr in extra_cidrs if cidr not in LOCAL_EXCLUDE_IPS
+    ]
 
     # 2. AI 域名
     ai_entries = [{"host": domain, "description": "AI Service"} for domain in AI_EXCLUDE_DOMAINS]
@@ -123,40 +179,56 @@ def update_split_tunnels():
     # 3. 国内核心大厂域名
     cn_domain_entries = [{"host": domain, "description": "CN Core Domain"} for domain in CN_CORE_DOMAINS]
 
-    reserved_count = len(local_entries) + len(ai_entries) + len(cn_domain_entries)
+    fixed_entries = local_entries + extra_entries + ai_entries + cn_domain_entries
+    reserved_count = len(fixed_entries)
+    if reserved_count > MAX_RULES:
+        raise ValueError(
+            f"固定规则与私有排除项共 {reserved_count} 条，超过 MAX_RULES={MAX_RULES}；"
+            "已停止同步，不会截断私有项或更新 Cloudflare。"
+        )
     max_available_ips = MAX_RULES - reserved_count
 
     # 4. 获取自适应配额的 CN IP
-    cidrs = get_cn_cidrs(max_available_ips)
+    cidrs = get_cn_cidrs(max_available_ips) if max_available_ips else []
+    reserved_addresses = {entry["address"] for entry in fixed_entries if "address" in entry}
+    cidrs = [cidr for cidr in cidrs if cidr not in reserved_addresses]
     ip_entries = [{"address": cidr, "description": "CN IP"} for cidr in cidrs[:max_available_ips]]
 
     # 组合全部规则
-    routes = local_entries + ai_entries + cn_domain_entries + ip_entries
+    routes = fixed_entries + ip_entries
 
     print(
         f"   本地 IP：{len(local_entries)} 条 | "
+        f"私有排除：{len(extra_entries)} 条 | "
         f"AI 域名：{len(ai_entries)} 条 | "
         f"CN 大厂域名：{len(cn_domain_entries)} 条 | "
         f"CN IP：{len(ip_entries)} 条 | "
         f"合计下发：{len(routes)} 条"
     )
 
-    if len(routes) > MAX_RULES:
-        routes = routes[:MAX_RULES]
-    
     if PROFILE_ID:
         url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/{PROFILE_ID}/{MODE}"
     else:
         url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/devices/policy/{MODE}"
 
-    resp = requests.put(url, json=routes, headers=HEADERS)
+    try:
+        resp = requests.put(url, json=routes, headers=HEADERS, timeout=30)
+    except requests.RequestException:
+        raise RuntimeError("Cloudflare API 网络请求失败；请求和响应详情已隐藏，以保护私有排除项。") from None
 
-    if resp.status_code in (200, 204):
-        print(f"✅ 同步成功！共下发 {len(routes)} 条规则 | Mode: {MODE}")
-    else:
-        print(f"❌ 失败 {resp.status_code}: Cloudflare API 请求未成功")
-        print(f"🔍 错误详情: {resp.text}")
-        resp.raise_for_status()
+    if resp.status_code not in (200, 204):
+        raise RuntimeError(
+            f"Cloudflare API 同步失败（HTTP {resp.status_code}）；响应正文已隐藏，以保护私有排除项。"
+        )
+    if resp.status_code == 200:
+        try:
+            result = resp.json()
+        except ValueError:
+            raise RuntimeError("Cloudflare API 响应无法解析，不能确认同步成功；响应正文已隐藏。") from None
+        if not isinstance(result, dict) or result.get("success") is not True:
+            raise RuntimeError("Cloudflare API 未确认同步成功；响应正文已隐藏，以保护私有排除项。")
+
+    print(f"✅ 同步成功！共下发 {len(routes)} 条规则 | Mode: {MODE}")
 
 if __name__ == "__main__":
     print(f"🔄 开始执行 Cloudflare Split Tunnels 同步 (模式: {MODE})...")
