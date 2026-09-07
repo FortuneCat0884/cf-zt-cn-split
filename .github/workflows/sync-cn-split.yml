@@ -1,15 +1,21 @@
 name: 同步到Zero Trust
+
 permissions:
   contents: read
 
 on:
   schedule:
-    - cron: '0 3 * * 0'  # 每周日北京时间11:00（UTC 3:00）
-  workflow_dispatch:         # 手动触发按钮
+    - cron: '0 3 * * 0'  # 每周日北京时间 11:00
+  workflow_dispatch:
+
+concurrency:
+  group: cf-zt-cn-split-sync
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -19,19 +25,18 @@ jobs:
           python-version: '3.12'
 
       - name: 安装依赖
-        run: pip install requests
+        run: python -m pip install requests
 
-      - name: 1. 运行 IP 分流同步脚本 (Split Tunnels)
+      - name: 离线验证
+        run: python -m unittest discover -s tests -v
+
+      - name: 统一同步分流和 DNS
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_PROFILE_ID: ${{ secrets.CF_PROFILE_ID }}
           WARP_EXTRA_EXCLUDES: ${{ secrets.WARP_EXTRA_EXCLUDES }}
-          MODE: exclude                     # 私有排除项仅支持 exclude
+          WARP_MAX_TOTAL_RULES: '1000'
+          WARP_FALLBACK_TARGET: '200'
+          MODE: exclude
         run: python cf-zt-cn-split.py
-
-      - name: 2. 运行域名 DNS 分流同步脚本 (Local Domain Fallback)
-        env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-        run: python update_fallback.py
