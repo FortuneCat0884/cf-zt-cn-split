@@ -140,7 +140,7 @@ INITIAL_CORE = [
     "ykimg.com", "youku.com", "amap.com", "dingtalk.com", "ele.me",
     
     # 百度
-    "baidu.com", "bdimg.com", "bdstatic.com", "baidupcs.com", "baidubce.com",
+    "baidu.com", "bdimg.com", "bdstatic.com", "baidupcs.com", "baidubce.com", "shifen.com", "bcebos.com",
     
     # 字节 / 抖音生态 (补齐抖音视频与高清图片 CDN)
     "douyin.com", "douyincdn.com", "byteimg.com", "bytegoofy.com", "bytedance.com", 
