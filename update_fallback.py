@@ -129,7 +129,7 @@ def is_redundant(target: str, auto_domains: list) -> bool:
 # ==========================================
 INITIAL_CORE = [
     # 顶级域与国家级媒体
-    "cn", "cctv.com", "cctvpic.com", "cntv.com", "cgtn.com", "yangshipin.com",
+    "cn", "cctv.com", "cctvpic.com", "cntv.com", "cgtn.com", "yangshipin.com", "cntv.cn", "wscdns.com", "kcdnvip.com", "volcfcdn.com",
     
     # 腾讯与微信全家桶 (补齐微信小程序与微信支付核心)
     "qq.com", "tencent.com", "gtimg.com", "tencent-cloud.net", "myqcloud.com", 
