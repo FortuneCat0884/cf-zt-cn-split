@@ -26,7 +26,8 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_PROFILE_ID: ${{ secrets.CF_PROFILE_ID }}
-          MODE: exclude                     # 可改成 include
+          WARP_EXTRA_EXCLUDES: ${{ secrets.WARP_EXTRA_EXCLUDES }}
+          MODE: exclude                     # 私有排除项仅支持 exclude
         run: python cf-zt-cn-split.py
 
       - name: 2. 运行域名 DNS 分流同步脚本 (Local Domain Fallback)
